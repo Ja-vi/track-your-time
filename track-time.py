@@ -73,8 +73,6 @@ class Tracker(object):
 		self.running = []
 		self.config_file = None
 
-	def guess_level(self,
-
 	def load_config(self, filename):
 		"""
 		Loads the content of a config file in categories
@@ -86,7 +84,6 @@ class Tracker(object):
 		q: project2
 		i: independent task
 
-		just single caracter allowed as shortcut
 		"""
 		self.config_file = filename
 		with open(filename) as f:
@@ -98,8 +95,9 @@ class Tracker(object):
 			if s[0] in config.keys():
 				continue
 			config[s[0]] = s[1]
-			self.categories.append(Category(self.category[0],s[0],s[1]))
 
+			#TODO not subcategories loaded yet, loaded as child of root category
+			self.categories.append(Category(self.categories[0],s[0],s[1]))
 
 	def new_config(self, filename):
 		"""Creates an empty file to write the config of the logger when closing"""
@@ -122,11 +120,11 @@ def main():
 		t.load_config(sys.argv[1])
 	else:
 		try:
-			t.load_config("prueba.rc")
+			t.load_config("default.rc")
 		except Exception("file not found or readable"):
 			t.new_config("default.rc")
 		except:
-			print("Error: )
+			print("Error: unknown error")
 			return -1
 	print(t)
 	curses.wrapper(loop)
