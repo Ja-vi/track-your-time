@@ -10,7 +10,7 @@ clean.
 
 To execute it, run:
 
-	python tyt.py
+	python track-time.py
 
 This project is licensed under GPLv3.0 please see attached license if in doubt
 of restrictions.
