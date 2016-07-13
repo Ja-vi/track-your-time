@@ -45,9 +45,8 @@ class Category(object):
 			self.start_time = delta
 
 	def change_parent(self, newparent):
-		"""Make this category a subcategory of *newparent*"""
+		"""Make this category a subcategory of *newparent* if it is not the root category"""
 		if self.parent is not None:
-			#only if it is not the root category
 			self.parent.children.remove(self)
 			newparent.children.append(self)
 			self.parent = newparent
@@ -121,7 +120,7 @@ def main():
 	else:
 		try:
 			t.load_config("default.rc")
-		except Exception("file not found or readable"):
+		except IOError:
 			t.new_config("default.rc")
 		except:
 			print("Error: unknown error")
