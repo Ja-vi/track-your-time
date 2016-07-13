@@ -26,26 +26,31 @@ class Category(object):
 		self.state = "pause"
 		if parent is not None:
 			"""add self to parent.children"""
+			self.parent.children.append(self)
 
 	def play(self):
 		"""Continue logging time to this category"""
 		self.start_time = time.time()
 		self.state = "play"
-		pass
 
 	def pause(self):
 		"""Pause logging time to this category"""
 		self.state = "pause"
-		pass
 
 	def update(self):
 		"""updates the time for this category"""
 		if self.state is "play":
-			self.time += (time.time() - self.start_time())
+			delta = time.time()
+			self.time += (delta - self.start_time)
+			self.start_time = delta
 
 	def change_parent(self, newparent):
 		"""Make this category a subcategory of *newparent*"""
-		pass
+		if self.parent is not None:
+			#only if it is not the root category
+			self.parent.children.remove(self)
+			newparent.children.append(self)
+			self.parent = newparent
 
 	def __int__(self):
 		"""returns the total time for this category and subcategories"""
@@ -68,10 +73,11 @@ class Tracker(object):
 		self.running = []
 		self.config_file = None
 
+	def guess_level(self,
+
 	def load_config(self, filename):
 		"""
 		Loads the content of a config file in categories
-		case insensitive
 
 		Structure of config file:
 		p: project1
@@ -83,6 +89,17 @@ class Tracker(object):
 		just single caracter allowed as shortcut
 		"""
 		self.config_file = filename
+		with open(filename) as f:
+			lines = f.readlines()
+
+		config = {}
+		for l in lines:
+			s = [w.strip("-").strip() for w in l.split(":")]
+			if s[0] in config.keys():
+				continue
+			config[s[0]] = s[1]
+			self.categories.append(Category(self.category[0],s[0],s[1]))
+
 
 	def new_config(self, filename):
 		"""Creates an empty file to write the config of the logger when closing"""
@@ -94,8 +111,8 @@ class Tracker(object):
 		"""return self as string, for debugging"""
 		return "[" + ", ".join([str(el) for el in self.categories]) + "]"
 
-def loop(clrscr):
-	"""Main loop in the script, to use with ncurses wrapper"""
+def loop(stdscr):
+	"""Main loop in the script, to use with curses.wrapper"""
 	pass
 
 def main():
@@ -106,8 +123,11 @@ def main():
 	else:
 		try:
 			t.load_config("prueba.rc")
-		except:
+		except Exception("file not found or readable"):
 			t.new_config("default.rc")
+		except:
+			print("Error: )
+			return -1
 	print(t)
 	curses.wrapper(loop)
 
