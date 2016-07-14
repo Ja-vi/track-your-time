@@ -4,9 +4,10 @@ track-your-time
 Motivation
 ----------
 
-I created this program because I was using worklog to track the time I used
-in projects, and I wanted to make some changes to the program and increase
-functionality.
+I started this program because use 
+[worklog](https://tracker.debian.org/pkg/worklog) 
+to track the time I spend in projects, and I wanted to make some changes 
+to the program and increase functionality.
 
 Extra functionality
 -------------------
