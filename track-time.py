@@ -39,14 +39,14 @@ class Category(object):
 
 	def toogle(self):
 		"""Quickly toogle between states"""
-		if self.state is "pause":
+		if self.state == "pause":
 			self.play()
 		else:
 			self.pause()
 
 	def update(self):
 		"""updates the time for this category"""
-		if self.state is "play":
+		if self.state == "play":
 			delta = int(time.time())
 			self.time += (delta - self.start_time)
 			self.start_time = delta
@@ -65,9 +65,22 @@ class Category(object):
 			sum += int(s)
 		return sum
 
+	def time_str(self):
+		hours = int(self) / 3600
+		mins = (int(self) % 3600) / 60
+		secs = (int(self) % 60)
+		my = ""
+		if hours > 0:
+			my += str(hours) + "h"
+		if mins > 0:
+			my += " " + str(mins) + "m"
+		if secs > 0:
+			my += " " + str(secs) + "s"
+		return my
+
 	def __str__(self):
-		"""return self as string, for debugging"""
-		return "<" + "-".join([self.shortcut, self.name, str(int(self))]) + ">"
+		"""return self as string"""
+		return " "*5 + self.shortcut + " " + self.name + self.time_str()
 
 class Tracker(object):
 	"""Monitor for the categories and user interface"""
@@ -120,32 +133,47 @@ class Tracker(object):
 		for cat in self.categories:
 			self.categories[cat].update()
 
-	def __call__(self, key):
+	def do(self, key):
 		self.categories[key].toogle()
 
 	def __str__(self):
 		"""return self as string, for debugging"""
-		return "[" + "\n".join([str(self.categories[key]) for key in self.categories]) + "]"
+		return "\n".join([str(self.categories[key]) for key in self.categories])
 
 def loop(stdscr, t):
 	"""Main loop in the script, to use with curses.wrapper"""
 	curses.noecho()
 	curses.cbreak()
 	stdscr.nodelay(1)
-	stdscr.keypad(1)
+	stdscr.keypad(True)
 	stdscr.clear()
+
+	#print the header
+	stdscr.addstr(1,5,"Track your time v0.5")
+	stdscr.hline(2,1,"-",28)
 
 	exit = False
 	while not exit:
 		try:
-			action = stdscr.getkey(1,2)
-			t(action)
+			action = stdscr.getkey()
+			if action == "KEY_BACKSPACE":
+				stdscr.nodelay(0)
+				stdscr.addstr(10,1,"Press DEL again to exit")
+				stdscr.refresh()
+				action = stdscr.getkey()
+				if action == "KEY_BACKSPACE":
+					exit = True
+					continue
+				stdscr.nodelay(1)
+
+			t.do(action)
 		except:
 			pass
+
 		t.update_all()
-		stdscr.addstr(3,2,str(t))
+		stdscr.addstr(3,1,str(t))
 		stdscr.refresh()
-		time.sleep(1)
+		time.sleep(0.125)
 
 def main():
 	"""Script entry point"""
