@@ -22,7 +22,9 @@ A category is specified with _shortcut_ : _name-or-short-definition_
 The following is an example of config file:
 
 > c: cooking
+> 
 > d: developing
+> 
 > t: do the thing
 
 2 things to remark here:
