@@ -144,46 +144,54 @@ def loop(stdscr, t):
 	"""Main loop in the script, to use with curses.wrapper"""
 	curses.noecho()
 	curses.cbreak()
-	stdscr.nodelay(1)
-	stdscr.keypad(True)
-	stdscr.clear()
+
+	pad = curses.newpad(100,200)
+
+	pad.nodelay(1)
+	pad.keypad(True)
+	pad.clear()
 
 	#print the header
-	stdscr.addstr(1,5,"Track your time v0.5")
-	stdscr.hline(2,1,"-",28)
+	pad.addstr(1,5,"Track your time v0.5")
+	pad.hline(2,1,"-",28)
 
 	exit = False
 	while not exit:
+	  try: #done to avoid kill by resizing, just cicle again with the new values of the window
+	  	mcyx = stdscr.getmaxyx()
 		try:
-			action = stdscr.getkey()
-			#print action
+			action = pad.getkey()
 			if action == "KEY_BACKSPACE":
-				stdscr.nodelay(0)
-				mcyx = stdscr.getmaxyx()
-				#prints this strign in the lower left corner of the window
-				stdscr.addstr(mcyx[0]-1,1,"Press DEL again to exit")
-				stdscr.refresh()
-				action = stdscr.getkey()
+				pad.nodelay(0)
+				#prints this string in the lower left corner of the window
+				pad.addstr(mcyx[0]-1,1,"Press DEL again to exit")
+				pad.refresh(mcyx[0]-1,0,mcyx[0]-1,0,mcyx[0]-1, mcyx[1]-1)
+				action = pad.getkey()
 				if action == "KEY_BACKSPACE":
 					exit = True
 					continue
-				stdscr.hline(mcyx[0]-1,0," ",mcyx[1]-1)
-				stdscr.refresh()
-				stdscr.nodelay(1)
+				pad.hline(mcyx[0]-1,0," ",mcyx[1]-1)
 
 			t.do(action)
 		except:
 			pass
+		finally:
+			pad.nodelay(1)
 
 		t.update_all()
-		stdscr.addstr(3,1,str(t))
-		endyx = stdscr.getyx()
+		pad.addstr(3,1,str(t))
+		endyx = pad.getyx()
 		nexty = endyx[0]+2
-		stdscr.addstr(nexty,3,"DEL Quit")
+		pad.addstr(nexty,3,"DEL Quit")
 		nexty+=1
-		stdscr.addstr(nexty,4,"CR Make report")
-		stdscr.refresh()
+		pad.addstr(nexty,4,"CR Make report")
+		pad.refresh(0,0,0,0,mcyx[0]-1,mcyx[1]-1)
 		time.sleep(0.125)
+	  except (KeyboardInterrupt, SystemExit):
+	  	exit = True
+	  except:
+		pass
+	return 0
 
 def main():
 	"""Script entry point"""
