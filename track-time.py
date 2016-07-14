@@ -30,17 +30,24 @@ class Category(object):
 
 	def play(self):
 		"""Continue logging time to this category"""
-		self.start_time = time.time()
+		self.start_time = int(time.time())
 		self.state = "play"
 
 	def pause(self):
 		"""Pause logging time to this category"""
 		self.state = "pause"
 
+	def toogle(self):
+		"""Quickly toogle between states"""
+		if self.state is "pause":
+			self.play()
+		else:
+			self.pause()
+
 	def update(self):
 		"""updates the time for this category"""
 		if self.state is "play":
-			delta = time.time()
+			delta = int(time.time())
 			self.time += (delta - self.start_time)
 			self.start_time = delta
 
@@ -68,8 +75,7 @@ class Tracker(object):
 	def __init__(self):
 		"""Init the monitor with a categories list containing the root category,
 		and a reference to the categories currently being logged"""
-		self.categories = [Category(None, "T", "Total time")]
-		self.running = []
+		self.categories = {"":Category(None, "", "Total time")}
 		self.config_file = None
 
 	def load_config(self, filename):
@@ -91,12 +97,18 @@ class Tracker(object):
 		config = {}
 		for l in lines:
 			s = [w.strip("-").strip() for w in l.split(":")]
+
+			#just allow keys of exactly one char
+			if len(s[0]) != 1:
+				continue
+
+			#and only unique keys
 			if s[0] in config.keys():
 				continue
 			config[s[0]] = s[1]
 
-			#TODO not subcategories loaded yet, loaded as child of root category
-			self.categories.append(Category(self.categories[0],s[0],s[1]))
+			#TODO not subcategories loaded yet, all loaded as children of root category
+			self.categories[s[0]] = Category(self.categories[""],s[0],s[1])
 
 	def new_config(self, filename):
 		"""Creates an empty file to write the config of the logger when closing"""
@@ -104,13 +116,36 @@ class Tracker(object):
 		with open(filename, "w") as f:
 			pass
 
+	def update_all(self):
+		for cat in self.categories:
+			self.categories[cat].update()
+
+	def __call__(self, key):
+		self.categories[key].toogle()
+
 	def __str__(self):
 		"""return self as string, for debugging"""
-		return "[" + ", ".join([str(el) for el in self.categories]) + "]"
+		return "[" + "\n".join([str(self.categories[key]) for key in self.categories]) + "]"
 
-def loop(stdscr):
+def loop(stdscr, t):
 	"""Main loop in the script, to use with curses.wrapper"""
-	pass
+	curses.noecho()
+	curses.cbreak()
+	stdscr.nodelay(1)
+	stdscr.keypad(1)
+	stdscr.clear()
+
+	exit = False
+	while not exit:
+		try:
+			action = stdscr.getkey(1,2)
+			t(action)
+		except:
+			pass
+		t.update_all()
+		stdscr.addstr(3,2,str(t))
+		stdscr.refresh()
+		time.sleep(1)
 
 def main():
 	"""Script entry point"""
@@ -125,8 +160,7 @@ def main():
 		except:
 			print("Error: unknown error")
 			return -1
-	print(t)
-	curses.wrapper(loop)
+	curses.wrapper(loop, t)
 
 if __name__ == '__main__':
     sys.exit(main())
