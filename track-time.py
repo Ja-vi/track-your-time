@@ -80,7 +80,11 @@ class Category(object):
 
 	def __str__(self):
 		"""return self as string"""
-		return " "*5 + self.shortcut + " " + self.name + self.time_str()
+		if self.state == "play":
+			first = " =>  "
+		else:
+			first = " "*5
+		return "{0:5s}{1:1s} {2:<20s}{3:>12s}".format(first, self.shortcut, self.name, self.time_str())
 
 class Tracker(object):
 	"""Monitor for the categories and user interface"""
@@ -89,6 +93,7 @@ class Tracker(object):
 		"""Init the monitor with a categories list containing the root category,
 		and a reference to the categories currently being logged"""
 		self.categories = {"":Category(None, "", "Total time")}
+		self.running = []
 		self.config_file = None
 
 	def load_config(self, filename):
@@ -134,11 +139,28 @@ class Tracker(object):
 			self.categories[cat].update()
 
 	def do(self, key):
-		self.categories[key].toogle()
+		curr = self.categories[key]
+		curr.toogle()
+		if curr.status == "play":
+			self.running.append(curr)
+		else:
+			self.running.remove(curr)
+
+	def pause_running(self):
+		"""Stops all the clocks"""
+		for cat in self.running:
+			cat.pause()
+
+	def continue_running(self):
+		"""Continue running those previously stopped by pause_running"""
+		for cat in self.running:
+			cat.play()
 
 	def __str__(self):
 		"""return self as string, for debugging"""
-		return "\n".join([str(self.categories[key]) for key in self.categories])
+		cad = "\n".join([str(self.categories[key]) for key in self.categories if key != ""])
+		cad += "\n\n" + str(self.categories[""])
+		return cad
 
 def loop(stdscr, t):
 	"""Main loop in the script, to use with curses.wrapper"""
@@ -181,12 +203,14 @@ def loop(stdscr, t):
 			pad.nodelay(1)
 
 		t.update_all()
-		pad.addstr(3,1,str(t))
+		pad.addstr(3,0,str(t))
 		endyx = pad.getyx()
 		nexty = endyx[0]+2
-		pad.addstr(nexty,3,"DEL Quit")
+		pad.addstr(nexty,1,"SPACE Pause all the clocks")
 		nexty+=1
 		pad.addstr(nexty,4,"CR Make report")
+		nexty+=1
+		pad.addstr(nexty,3,"DEL Quit")
 		pad.refresh(0,0,0,0,mcyx[0]-1,mcyx[1]-1)
 		time.sleep(0.125)
 	  except (KeyboardInterrupt, SystemExit):
