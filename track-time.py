@@ -156,14 +156,19 @@ def loop(stdscr, t):
 	while not exit:
 		try:
 			action = stdscr.getkey()
+			#print action
 			if action == "KEY_BACKSPACE":
 				stdscr.nodelay(0)
-				stdscr.addstr(10,1,"Press DEL again to exit")
+				mcyx = stdscr.getmaxyx()
+				#prints this strign in the lower left corner of the window
+				stdscr.addstr(mcyx[0]-1,1,"Press DEL again to exit")
 				stdscr.refresh()
 				action = stdscr.getkey()
 				if action == "KEY_BACKSPACE":
 					exit = True
 					continue
+				stdscr.hline(mcyx[0]-1,0," ",mcyx[1]-1)
+				stdscr.refresh()
 				stdscr.nodelay(1)
 
 			t.do(action)
@@ -172,6 +177,11 @@ def loop(stdscr, t):
 
 		t.update_all()
 		stdscr.addstr(3,1,str(t))
+		endyx = stdscr.getyx()
+		nexty = endyx[0]+2
+		stdscr.addstr(nexty,3,"DEL Quit")
+		nexty+=1
+		stdscr.addstr(nexty,4,"CR Make report")
 		stdscr.refresh()
 		time.sleep(0.125)
 
