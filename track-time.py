@@ -141,7 +141,7 @@ class Tracker(object):
 	def do(self, key):
 		curr = self.categories[key]
 		curr.toogle()
-		if curr.status == "play":
+		if curr.state == "play":
 			self.running.append(curr)
 		else:
 			self.running.remove(curr)
@@ -183,7 +183,7 @@ def loop(stdscr, t):
 	  	mcyx = stdscr.getmaxyx()
 		try:
 			action = pad.getkey()
-			if action == "KEY_BACKSPACE":
+			if action == "KEY_BACKSPACE": #DEL action
 				pad.nodelay(0)
 				#prints this string in the lower left corner of the window
 				pad.addstr(mcyx[0]-1,1,"Press DEL again to exit")
@@ -192,6 +192,15 @@ def loop(stdscr, t):
 				if action == "KEY_BACKSPACE":
 					exit = True
 					continue
+				pad.hline(mcyx[0]-1,0," ",mcyx[1]-1)
+			if action == " ": #SPACE action
+				pad.nodelay(0)
+				pad.addstr(mcyx[0]-1,1," -- Clock paused.  Press any key to resume -- ")
+				pad.refresh(mcyx[0]-1,0,mcyx[0]-1,0,mcyx[0]-1, mcyx[1]-1)
+				action = -1
+				t.pause_running()
+				pad.getkey()
+				t.continue_running()
 				pad.hline(mcyx[0]-1,0," ",mcyx[1]-1)
 
 			t.do(action)
