@@ -173,6 +173,8 @@ def loop(stdscr, t):
 				pad.hline(mcyx[0]-1,0," ",mcyx[1]-1)
 
 			t.do(action)
+		except (KeyboardInterrupt, SystemExit):
+			raise
 		except:
 			pass
 		finally:
