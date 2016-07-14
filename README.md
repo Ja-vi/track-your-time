@@ -17,6 +17,7 @@ Configuration File
 ------------------
 
 The configuration file is formed of lines where each line represent one Category.
+
 A category is specified with _shortcut_ : _name-or-short-definition_
 
 The following is an example of config file:
