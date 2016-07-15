@@ -168,6 +168,15 @@ class Tracker(object):
 			l.append(self.str_recursive(c, level+1))
 		return "\n".join(l)
 
+	def delete_category(self, cat):
+		"""Removes the category with key *cat* and its subcategories"""
+		for c in self.categories[cat].children:
+			self.delete_category(c.shortcut)
+		self.categories[cat].parent.children.remove(self.categories[cat])
+		if self.categories[cat] in self.running:
+			self.running.remove(self.categories[cat])
+		del self.categories[cat]
+
 	def __str__(self):
 		"""return self as string, for debugging"""
 		cad = ""
@@ -264,6 +273,22 @@ def loop(stdscr, t):
 						if thisind > 0:
 							this.change_parent(this.parent.children[thisind-1])
 				pad.hline(mcyx[0]-1,0," ",mcyx[1]-1)
+			if action == "2":
+				pad.nodelay(0)
+				pad.addstr(mcyx[0]-1,1,"Select category to remove; DEL to cancel ")
+				pad.refresh(mcyx[0]-1,0,mcyx[0]-1,0,mcyx[0]-1, mcyx[1]-1)
+				while (action not in t.categories) and (action != "KEY_BACKSPACE"):
+					action = pad.getkey()
+				delkey = action
+				if action in t.categories:
+					pad.addstr(mcyx[0]-1,1,"Press 2 to remove; any other key to cancel                      ")
+					pad.refresh(mcyx[0]-1,0,mcyx[0]-1,0,mcyx[0]-1, mcyx[1]-1)
+					action = pad.getkey()
+					if action == "2":
+						t.delete_category(delkey)
+				pad.hline(mcyx[0]-1,0," ",mcyx[1]-1)
+
+
 
 
 			t.do(action)
