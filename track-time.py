@@ -51,13 +51,6 @@ class Category(object):
 			self.time += (delta - self.start_time)
 			self.start_time = delta
 
-	def change_parent(self, newparent):
-		"""Make this category a subcategory of *newparent* if it is not the root category"""
-		if self.parent is not None:
-			self.parent.children.remove(self)
-			newparent.children.append(self)
-			self.parent = newparent
-
 	def __int__(self):
 		"""returns the total time for this category and subcategories"""
 		sum = self.time
@@ -205,6 +198,20 @@ def loop(stdscr, t):
 				pad.getkey()
 				t.continue_running()
 				pad.hline(mcyx[0]-1,0," ",mcyx[1]-1)
+			if action == "1": #MOVE category action
+				pad.nodelay(0)
+				pad.addstr(mcyx[0]-1,1,"Select category to move: ")
+				pad.refresh(mcyx[0]-1,0,mcyx[0]-1,0,mcyx[0]-1, mcyx[1]-1)
+				while action not in t.categories:
+					action = pad.getkey(mcyx[0]-1,27)
+				pad.addstr(mcyx[0]-1,1,"Selected {}; Press 1 to exit; Press arrow keys to move".format(action))
+				pad.refresh(mcyx[0]-1,0,mcyx[0]-1,0,mcyx[0]-1, mcyx[1]-1)
+				while action != "1":
+					action = pad.getkey()
+					if action == "KEY_UP":
+					elif action == "KEY_DOWN":
+					elif action == "KEY_LEFT":
+					elif action == "KEY_RIGHT":
 
 			t.do(action)
 		except (KeyboardInterrupt, SystemExit):
