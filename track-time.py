@@ -287,9 +287,22 @@ def loop(stdscr, t):
 					if action == "2":
 						t.delete_category(delkey)
 				pad.hline(mcyx[0]-1,0," ",mcyx[1]-1)
+				action = "2"
+			if action == "3":
+				pad.nodelay(0)
+				pad.addstr(mcyx[0]-1,1,"Press key to use as shortcut for the new category, no repeted allowed: ")
+				pad.refresh(mcyx[0]-1,0,mcyx[0]-1,0,mcyx[0]-1, mcyx[1]-1)
+				while not action.isalpha():
+					action = pad.getkey(mcyx[0]-1, len("Press key to use as shortcut for the new category, no repeted allowed: ")+1)
+					if action in t.categories:
+						action = "3"
 
-
-
+				pad.addstr(mcyx[0]-1,1,"Insert name string for the category:                                                ")
+				pad.refresh(mcyx[0]-1,0,mcyx[0]-1,0,mcyx[0]-1, mcyx[1]-1)
+				name = pad.getstr(mcyx[0]-1, len("Insert name string for the category: "))
+				t.categories[action] = Category(t.categories[""],action,name)
+				pad.hline(mcyx[0]-1,0," ",mcyx[1]-1)
+				action = "3"
 
 			t.do(action)
 		except (KeyboardInterrupt, SystemExit):
@@ -302,7 +315,10 @@ def loop(stdscr, t):
 		t.update_all()
 		pad.addstr(3,0,str(t))
 		endyx = pad.getyx()
-		nexty = endyx[0]+2
+		nexty = endyx[0]
+		nexty+=1
+		pad.hline(nexty,0," ",mcyx[1]-1)
+		nexty+=1
 		pad.hline(nexty,0," ",mcyx[1]-1)
 		pad.addstr(nexty,1,"SPACE Pause all the clocks")
 		nexty+=1
@@ -314,6 +330,12 @@ def loop(stdscr, t):
 		nexty+=1
 		pad.hline(nexty,0," ",mcyx[1]-1)
 		pad.addstr(nexty,5,"1 Select a category and move it")
+		nexty+=1
+		pad.hline(nexty,0," ",mcyx[1]-1)
+		pad.addstr(nexty,5,"2 Delete a category")
+		nexty+=1
+		pad.hline(nexty,0," ",mcyx[1]-1)
+		pad.addstr(nexty,5,"3 Add a new category")
 		pad.hline(nexty+1,0," ",mcyx[1]-1)
 		pad.refresh(0,0,0,0,mcyx[0]-1,mcyx[1]-1)
 		time.sleep(0.125)
