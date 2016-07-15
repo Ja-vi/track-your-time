@@ -66,6 +66,7 @@ class Category(object):
 		return sum
 
 	def time_str(self):
+		"""Time string format in hours, minutes and seconds"""
 		hours = int(self) / 3600
 		mins = (int(self) % 3600) / 60
 		secs = (int(self) % 60)
@@ -116,7 +117,7 @@ class Tracker(object):
 		for l in lines:
 			s = [w.strip("-").strip() for w in l.split(":")]
 
-			#just allow keys of exactly one char
+			#just load keys of exactly one char
 			if len(s[0]) != 1:
 				continue
 
@@ -135,10 +136,12 @@ class Tracker(object):
 			pass
 
 	def update_all(self):
+		"""Update the time for all the categories (they know if they are running or stopped)"""
 		for cat in self.categories:
 			self.categories[cat].update()
 
 	def do(self, key):
+		"""Play or pause the category specified by *key*"""
 		curr = self.categories[key]
 		curr.toogle()
 		if curr.state == "play":
