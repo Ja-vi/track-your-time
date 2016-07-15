@@ -51,6 +51,13 @@ class Category(object):
 			self.time += (delta - self.start_time)
 			self.start_time = delta
 
+	def change_parent(self, newparent):
+		"""Make this category a subcategory of *newparent* if it is not the root category"""
+		if self.parent is not None:
+			self.parent.children.remove(self)
+			newparent.children.append(self)
+			self.parent = newparent
+
 	def __int__(self):
 		"""returns the total time for this category and subcategories"""
 		sum = self.time
@@ -152,10 +159,21 @@ class Tracker(object):
 		for cat in self.running:
 			cat.play()
 
+	def str_recursive(self, initial, level):
+		"""concat al the subcategory strings recursively"""
+		l = []
+		mycad = str(initial)
+		l.append(mycad[:5] + "  "*level + mycad[5:])
+		for c in initial.children:
+			l.append(self.str_recursive(c, level+1))
+		return "\n".join(l)
+
 	def __str__(self):
 		"""return self as string, for debugging"""
-		cad = "\n".join([str(self.categories[key]) for key in self.categories if key != ""])
-		cad += "\n\n" + str(self.categories[""])
+		cad = ""
+		for c in self.categories[""].children:
+			cad += self.str_recursive(c, 0) + "\n"
+		cad += "\n" + str(self.categories[""])
 		return cad
 
 def loop(stdscr, t):
@@ -175,7 +193,7 @@ def loop(stdscr, t):
 
 	exit = False
 	while not exit:
-	  try: #done to avoid kill by resizing, just cicle again with the new values of the window
+	  #try: #done to avoid kill by resizing, just cicle again with the new values of the window
 	  	mcyx = stdscr.getmaxyx()
 		try:
 			action = pad.getkey()
@@ -204,14 +222,49 @@ def loop(stdscr, t):
 				pad.refresh(mcyx[0]-1,0,mcyx[0]-1,0,mcyx[0]-1, mcyx[1]-1)
 				while action not in t.categories:
 					action = pad.getkey(mcyx[0]-1,27)
-				pad.addstr(mcyx[0]-1,1,"Selected {}; Press 1 to exit; Press arrow keys to move".format(action))
+				mvkey = action
+				this = t.categories[mvkey]
+				pad.addstr(mcyx[0]-1,1,"Selected {}; Press 1 to finish; Press arrow keys to move".format(action))
 				pad.refresh(mcyx[0]-1,0,mcyx[0]-1,0,mcyx[0]-1, mcyx[1]-1)
 				while action != "1":
+					pad.addstr(3,0,str(t))
+					endyx = pad.getyx()
+					nexty = endyx[0]+2
+					pad.hline(nexty,0," ",mcyx[1]-1)
+					pad.addstr(nexty,5,"1 Finish moving")
+					nexty+=1
+					pad.hline(nexty,0," ",mcyx[1]-1)
+					pad.addstr(nexty,4,"UP Move up the category and all the subcategories")
+					nexty+=1
+					pad.hline(nexty,0," ",mcyx[1]-1)
+					pad.addstr(nexty,2,"DOWN Move down the category and all the subcategories")
+					nexty+=1
+					pad.hline(nexty,0," ",mcyx[1]-1)
+					pad.addstr(nexty,2,"LEFT Unindent the category and all the subcategories")
+					nexty+=1
+					pad.hline(nexty,0," ",mcyx[1]-1)
+					pad.addstr(nexty,1,"RIGHT Indent the category and all the subcategories")
+					pad.refresh(0,0,0,0,mcyx[0]-1,mcyx[1]-1)
 					action = pad.getkey()
 					if action == "KEY_UP":
+						if this.parent.children[0] is not this:
+							thisind = this.parent.children.index(this)
+							this.parent.children.remove(this)
+							this.parent.children.insert(thisind-1, this)
 					elif action == "KEY_DOWN":
+						if this.parent.children[-1] is not this:
+							thisind = this.parent.children.index(this)
+							this.parent.children.remove(this)
+							this.parent.children.insert(thisind+1, this)
 					elif action == "KEY_LEFT":
+						if this.parent.shortcut != "":
+							this.change_parent(this.parent.parent)
 					elif action == "KEY_RIGHT":
+						thisind = this.parent.children.index(this)
+						if thisind > 0:
+							this.change_parent(this.parent.children[thisind-1])
+				pad.hline(mcyx[0]-1,0," ",mcyx[1]-1)
+
 
 			t.do(action)
 		except (KeyboardInterrupt, SystemExit):
@@ -225,17 +278,24 @@ def loop(stdscr, t):
 		pad.addstr(3,0,str(t))
 		endyx = pad.getyx()
 		nexty = endyx[0]+2
+		pad.hline(nexty,0," ",mcyx[1]-1)
 		pad.addstr(nexty,1,"SPACE Pause all the clocks")
 		nexty+=1
+		pad.hline(nexty,0," ",mcyx[1]-1)
 		pad.addstr(nexty,4,"CR Make report")
 		nexty+=1
+		pad.hline(nexty,0," ",mcyx[1]-1)
 		pad.addstr(nexty,3,"DEL Quit")
+		nexty+=1
+		pad.hline(nexty,0," ",mcyx[1]-1)
+		pad.addstr(nexty,5,"1 Select a category and move it")
+		pad.hline(nexty+1,0," ",mcyx[1]-1)
 		pad.refresh(0,0,0,0,mcyx[0]-1,mcyx[1]-1)
 		time.sleep(0.125)
-	  except (KeyboardInterrupt, SystemExit):
-	  	exit = True
-	  except:
-		pass
+	  #except (KeyboardInterrupt, SystemExit):
+	  #	exit = True
+	  #except:
+		#pass
 	return 0
 
 def main():
