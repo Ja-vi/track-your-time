@@ -89,6 +89,7 @@ class Category(object):
 
 class Tracker(object):
 	"""Monitor for the categories and user interface"""
+	version = "v0.7"
 
 	def __init__(self):
 		"""Init the monitor with a categories list containing the root category,
@@ -197,6 +198,7 @@ class Pad(object):
 		self.make_menues()
 
 	def make_menues(self):
+		"""Fill al the posibilities in the two menues existent"""
 		self.menu = []
 		self.menu.append(["SPACE","Pause all the clocks"])
 		self.menu.append(["CR","Make report"])
@@ -212,61 +214,68 @@ class Pad(object):
 		self.move_menu.append(["RIGHT", "Indent the category and all the subcategories"])
 
 	def write_header(self):
-		self.pad.addstr(1,5,"Track your time v0.5")
+		"""Write the header to the pad in the first two lines, useful after clearing it"""
+		self.pad.addstr(1,5,"Track your time "+Tracker.version)
 		self.pad.hline(2,1,"-",28)
 
 	def write(self, line, col, string):
-		self.pad.addstr(line,col,string)
+		"""write *string* to (*line*, *col*) pad position"""
+		self.pad.addstr(line,col,str(string))
 
 	def write_menu(self, line, menu):
+		"""write *menu* starting in *line*"""
 		for option in menu:
 			self.pad.hline(line, 0, " ", 199)
 			self.pad.addstr(line, 6-len(option[0]), option[0] + " " + option[1])
 			line+=1
 
-	def add_menu_option(self, key, name):
-		self.menu.append([key, name])
-
 	def ymaxscr(self):
-	  	mcyx = self.screen.getmaxyx()
-		return mcyx[0]-1
+		"""return the maximum value possible for the lines"""
+	  	return self.screen.getmaxyx()[0] - 1
 
 	def xmaxscr(self):
-	  	mcyx = self.screen.getmaxyx()
-		return mcyx[1]-1
+		"""return the maximum value possible for the columns"""
+	  	return self.screen.getmaxyx()[1] - 1
 
 	def getkey(self):
+		"""return the pressed key or -1 if nothing is in the input buffer"""
 		return self.pad.getkey()
 
 	def getstr(self):
+		"""wait for a string to be inserted and <intro> pressed and returns that string"""
 		self.pad.nodelay(0)
 		str = self.pad.getstr()
 		self.pad.nodelay(1)
 		return str
 
 	def say(self, msg):
+		"""write *msg* to the last line available, for notifications"""
 		lastline = self.ymaxscr()
 		self.write(lastline, 1, msg)
 		self.refresh(lastline)
 
 	def getyx(self):
+		"""return current pad writing position"""
 		return self.pad.getyx()
 
 	def msg_and_wait_getkey(self, msg):
+		"""notify *msg* and wait for a key to be pressed, return the pressed key"""
 		self.pad.nodelay(0)
-		#prints this string in the lower left corner of the window
 		self.say(msg)
 		opt = self.pad.getkey()
 		self.pad.nodelay(1)
 		return opt
 
 	def clean_status_line(self):
-		return self.pad.hline(self.ymaxscr(), 0, " ", 199)
+		"""Clean the notifications line"""
+		self.pad.hline(self.ymaxscr(), 0, " ", 199)
 
 	def clean(self):
-		return self.pad.clear()
+		"""Clean the whole pad"""
+		self.pad.clear()
 
 	def refresh(self, line=None):
+		"""Refresh the screen with the contents in pad, id *line* is specified only that line will be refreshed"""
 		if line is not None:
 			self.pad.refresh(line, 0, line, 0, line, self.xmaxscr())
 		else:
@@ -281,12 +290,11 @@ def loop(stdscr, t):
 
 	exit = False
 	while not exit:
-	  #try: #done to avoid kill by resizing, just cicle again with the new values of the window
+	  try: #done to avoid kill by resizing, just cicle again with the new values of the window
 		try:
 			action = pad.getkey()
 			if action == "KEY_BACKSPACE": #DEL action
 				action = pad.msg_and_wait_getkey("Press DEL again to exit")
-				print action
 				if action == "KEY_BACKSPACE":
 					exit = True
 					continue
@@ -302,9 +310,10 @@ def loop(stdscr, t):
 				mvkey = action
 				this = t.categories[mvkey]
 				while action != "1":
-					pad.write(3,0,str(t))
-					endyx = pad.getyx()
-					nexty = endyx[0]+2
+					pad.clean()
+					pad.write_header()
+					pad.write(3,0,t)
+					nexty = pad.getyx()[0] + 2
 					pad.write_menu(nexty, pad.move_menu)
 					pad.refresh()
 					action = pad.msg_and_wait_getkey("Selected {}; Press 1 to finish; Press arrow keys to move".format(mvkey))
@@ -358,16 +367,14 @@ def loop(stdscr, t):
 		pad.write_header()
 		t.update_all()
 		pad.write(3,0,str(t))
-		endyx = pad.getyx()
-		nexty = endyx[0]
-		nexty+=2
+		nexty = pad.getyx()[0] + 2 #Skip 2 lines from the end of the last written text
 		pad.write_menu(nexty, pad.menu)
 		pad.refresh()
 		time.sleep(0.125)
-	  #except (KeyboardInterrupt, SystemExit):
-	  #	exit = True
-	  #except:
-		#pass
+	  except (KeyboardInterrupt, SystemExit):
+	  	exit = True
+	  except:
+		pass
 	return 0
 
 def main():
