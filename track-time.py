@@ -185,76 +185,129 @@ class Tracker(object):
 		cad += "\n" + str(self.categories[""])
 		return cad
 
+class Pad(object):
+	"""Class to manage all the writing to screen and reading from keyboard"""
+	def __init__(self, screen):
+		"""Initialise the curses pad and menu options"""
+		self.screen = screen
+		self.pad = curses.newpad(100,200)
+		self.pad.nodelay(1)
+		self.pad.keypad(True)
+		self.pad.clear()
+		self.make_menues()
+
+	def make_menues(self):
+		self.menu = []
+		self.menu.append(["SPACE","Pause all the clocks"])
+		self.menu.append(["CR","Make report"])
+		self.menu.append(["DEL","Exit"])
+		self.menu.append(["1","Select a category and move it"])
+		self.menu.append(["2","Delete a category"])
+		self.menu.append(["3","Insert a new category"])
+		self.move_menu = []
+		self.move_menu.append(["1", "Finish moving"])
+		self.move_menu.append(["UP", "Move up the category and all the subcategories"])
+		self.move_menu.append(["DOWN", "Move down the category and all the subcategories"])
+		self.move_menu.append(["LEFT", "Unindent the category and all the subcategories"])
+		self.move_menu.append(["RIGHT", "Indent the category and all the subcategories"])
+
+	def write_header(self):
+		self.pad.addstr(1,5,"Track your time v0.5")
+		self.pad.hline(2,1,"-",28)
+
+	def write(self, line, col, string):
+		self.pad.addstr(line,col,string)
+
+	def write_menu(self, line, menu):
+		for option in menu:
+			self.pad.hline(line, 0, " ", 199)
+			self.pad.addstr(line, 6-len(option[0]), option[0] + " " + option[1])
+			line+=1
+
+	def add_menu_option(self, key, name):
+		self.menu.append([key, name])
+
+	def ymaxscr(self):
+	  	mcyx = self.screen.getmaxyx()
+		return mcyx[0]-1
+
+	def xmaxscr(self):
+	  	mcyx = self.screen.getmaxyx()
+		return mcyx[1]-1
+
+	def getkey(self):
+		return self.pad.getkey()
+
+	def getstr(self):
+		self.pad.nodelay(0)
+		str = self.pad.getstr()
+		self.pad.nodelay(1)
+		return str
+
+	def say(self, msg):
+		lastline = self.ymaxscr()
+		self.write(lastline, 1, msg)
+		self.refresh(lastline)
+
+	def getyx(self):
+		return self.pad.getyx()
+
+	def msg_and_wait_getkey(self, msg):
+		self.pad.nodelay(0)
+		#prints this string in the lower left corner of the window
+		self.say(msg)
+		opt = self.pad.getkey()
+		self.pad.nodelay(1)
+		return opt
+
+	def clean_status_line(self):
+		return self.pad.hline(self.ymaxscr(), 0, " ", 199)
+
+	def clean(self):
+		return self.pad.clear()
+
+	def refresh(self, line=None):
+		if line is not None:
+			self.pad.refresh(line, 0, line, 0, line, self.xmaxscr())
+		else:
+			self.pad.refresh(0,0,0,0,self.ymaxscr(),self.xmaxscr())
+
 def loop(stdscr, t):
 	"""Main loop in the script, to use with curses.wrapper"""
 	curses.noecho()
 	curses.cbreak()
 
-	pad = curses.newpad(100,200)
-
-	pad.nodelay(1)
-	pad.keypad(True)
-	pad.clear()
-
-	#print the header
-	pad.addstr(1,5,"Track your time v0.5")
-	pad.hline(2,1,"-",28)
+	pad = Pad(stdscr)
 
 	exit = False
 	while not exit:
 	  #try: #done to avoid kill by resizing, just cicle again with the new values of the window
-	  	mcyx = stdscr.getmaxyx()
 		try:
 			action = pad.getkey()
 			if action == "KEY_BACKSPACE": #DEL action
-				pad.nodelay(0)
-				#prints this string in the lower left corner of the window
-				pad.addstr(mcyx[0]-1,1,"Press DEL again to exit")
-				pad.refresh(mcyx[0]-1,0,mcyx[0]-1,0,mcyx[0]-1, mcyx[1]-1)
-				action = pad.getkey()
+				action = pad.msg_and_wait_getkey("Press DEL again to exit")
+				print action
 				if action == "KEY_BACKSPACE":
 					exit = True
 					continue
-				pad.hline(mcyx[0]-1,0," ",mcyx[1]-1)
-			if action == " ": #SPACE action
-				pad.nodelay(0)
-				pad.addstr(mcyx[0]-1,1," -- Clock paused.  Press any key to resume -- ")
-				pad.refresh(mcyx[0]-1,0,mcyx[0]-1,0,mcyx[0]-1, mcyx[1]-1)
 				action = -1
+			if action == " ": #SPACE action
 				t.pause_running()
-				pad.getkey()
+				pad.msg_and_wait_getkey(" -- Clock paused.  Press any key to resume -- ")
 				t.continue_running()
-				pad.hline(mcyx[0]-1,0," ",mcyx[1]-1)
+				action = -1
 			if action == "1": #MOVE category action
-				pad.nodelay(0)
-				pad.addstr(mcyx[0]-1,1,"Select category to move: ")
-				pad.refresh(mcyx[0]-1,0,mcyx[0]-1,0,mcyx[0]-1, mcyx[1]-1)
 				while action not in t.categories:
-					action = pad.getkey(mcyx[0]-1,27)
+					action = pad.msg_and_wait_getkey("Select category to move")
 				mvkey = action
 				this = t.categories[mvkey]
-				pad.addstr(mcyx[0]-1,1,"Selected {}; Press 1 to finish; Press arrow keys to move".format(action))
-				pad.refresh(mcyx[0]-1,0,mcyx[0]-1,0,mcyx[0]-1, mcyx[1]-1)
 				while action != "1":
-					pad.addstr(3,0,str(t))
+					pad.write(3,0,str(t))
 					endyx = pad.getyx()
 					nexty = endyx[0]+2
-					pad.hline(nexty,0," ",mcyx[1]-1)
-					pad.addstr(nexty,5,"1 Finish moving")
-					nexty+=1
-					pad.hline(nexty,0," ",mcyx[1]-1)
-					pad.addstr(nexty,4,"UP Move up the category and all the subcategories")
-					nexty+=1
-					pad.hline(nexty,0," ",mcyx[1]-1)
-					pad.addstr(nexty,2,"DOWN Move down the category and all the subcategories")
-					nexty+=1
-					pad.hline(nexty,0," ",mcyx[1]-1)
-					pad.addstr(nexty,2,"LEFT Unindent the category and all the subcategories")
-					nexty+=1
-					pad.hline(nexty,0," ",mcyx[1]-1)
-					pad.addstr(nexty,1,"RIGHT Indent the category and all the subcategories")
-					pad.refresh(0,0,0,0,mcyx[0]-1,mcyx[1]-1)
-					action = pad.getkey()
+					pad.write_menu(nexty, pad.move_menu)
+					pad.refresh()
+					action = pad.msg_and_wait_getkey("Selected {}; Press 1 to finish; Press arrow keys to move".format(mvkey))
 					if action == "KEY_UP":
 						if this.parent.children[0] is not this:
 							thisind = this.parent.children.index(this)
@@ -272,72 +325,44 @@ def loop(stdscr, t):
 						thisind = this.parent.children.index(this)
 						if thisind > 0:
 							this.change_parent(this.parent.children[thisind-1])
-				pad.hline(mcyx[0]-1,0," ",mcyx[1]-1)
+				action = -1
 			if action == "2":
-				pad.nodelay(0)
-				pad.addstr(mcyx[0]-1,1,"Select category to remove; DEL to cancel ")
-				pad.refresh(mcyx[0]-1,0,mcyx[0]-1,0,mcyx[0]-1, mcyx[1]-1)
 				while (action not in t.categories) and (action != "KEY_BACKSPACE"):
-					action = pad.getkey()
+					action = pad.msg_and_wait_getkey("Select category to remove; DEL to cancel")
 				delkey = action
 				if action in t.categories:
-					pad.addstr(mcyx[0]-1,1,"Press 2 to remove; any other key to cancel                      ")
-					pad.refresh(mcyx[0]-1,0,mcyx[0]-1,0,mcyx[0]-1, mcyx[1]-1)
-					action = pad.getkey()
+					action = pad.msg_and_wait_getkey("Press 2 to remove; any other key to cancel")
 					if action == "2":
 						t.delete_category(delkey)
-				pad.hline(mcyx[0]-1,0," ",mcyx[1]-1)
-				action = "2"
+				action = -1
 			if action == "3":
-				pad.nodelay(0)
-				pad.addstr(mcyx[0]-1,1,"Press key to use as shortcut for the new category, no repeted allowed: ")
-				pad.refresh(mcyx[0]-1,0,mcyx[0]-1,0,mcyx[0]-1, mcyx[1]-1)
 				while not action.isalpha():
-					action = pad.getkey(mcyx[0]-1, len("Press key to use as shortcut for the new category, no repeted allowed: ")+1)
+					action = pad.msg_and_wait_getkey("Press key to use as shortcut for the new category, no repeted allowed: ")
 					if action in t.categories:
 						action = "3"
-
-				pad.addstr(mcyx[0]-1,1,"Insert name string for the category:                                                ")
-				pad.refresh(mcyx[0]-1,0,mcyx[0]-1,0,mcyx[0]-1, mcyx[1]-1)
-				name = pad.getstr(mcyx[0]-1, len("Insert name string for the category: "))
+				pad.say("Type string for the category. (it won't show until <enter> is pressed)")
+				name = pad.getstr()
 				t.categories[action] = Category(t.categories[""],action,name)
-				pad.hline(mcyx[0]-1,0," ",mcyx[1]-1)
-				action = "3"
+				action = -1
 
+			pad.clean_status_line()
 			t.do(action)
 		except (KeyboardInterrupt, SystemExit):
 			raise
 		except:
 			pass
 		finally:
-			pad.nodelay(1)
+			pad.pad.nodelay(1)
 
+		pad.clean()
+		pad.write_header()
 		t.update_all()
-		pad.addstr(3,0,str(t))
+		pad.write(3,0,str(t))
 		endyx = pad.getyx()
 		nexty = endyx[0]
-		nexty+=1
-		pad.hline(nexty,0," ",mcyx[1]-1)
-		nexty+=1
-		pad.hline(nexty,0," ",mcyx[1]-1)
-		pad.addstr(nexty,1,"SPACE Pause all the clocks")
-		nexty+=1
-		pad.hline(nexty,0," ",mcyx[1]-1)
-		pad.addstr(nexty,4,"CR Make report")
-		nexty+=1
-		pad.hline(nexty,0," ",mcyx[1]-1)
-		pad.addstr(nexty,3,"DEL Quit")
-		nexty+=1
-		pad.hline(nexty,0," ",mcyx[1]-1)
-		pad.addstr(nexty,5,"1 Select a category and move it")
-		nexty+=1
-		pad.hline(nexty,0," ",mcyx[1]-1)
-		pad.addstr(nexty,5,"2 Delete a category")
-		nexty+=1
-		pad.hline(nexty,0," ",mcyx[1]-1)
-		pad.addstr(nexty,5,"3 Add a new category")
-		pad.hline(nexty+1,0," ",mcyx[1]-1)
-		pad.refresh(0,0,0,0,mcyx[0]-1,mcyx[1]-1)
+		nexty+=2
+		pad.write_menu(nexty, pad.menu)
+		pad.refresh()
 		time.sleep(0.125)
 	  #except (KeyboardInterrupt, SystemExit):
 	  #	exit = True
