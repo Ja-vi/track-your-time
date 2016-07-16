@@ -58,9 +58,20 @@ class Category(object):
 			newparent.children.append(self)
 			self.parent = newparent
 
+	def inc_time(self, seconds):
+		"""Increment time by *seconds*"""
+		self.time += int(seconds)
+
+	def dec_time(self, seconds):
+		"""Decrement time by *seconds*"""
+		self.time -= int(seconds)
+
 	def __int__(self):
 		"""returns the total time for this category and subcategories"""
 		sum = self.time
+		if sum < 0:
+			sum = 0
+			self.time = 0
 		for s in self.children:
 			sum += int(s)
 		return sum
@@ -75,7 +86,7 @@ class Category(object):
 			my += str(hours) + "h"
 		if mins > 0:
 			my += " " + str(mins) + "m"
-		if secs > 0:
+		if secs >= 0:
 			my += " " + str(secs) + "s"
 		return my
 
@@ -206,6 +217,8 @@ class Pad(object):
 		self.menu.append(["1","Select a category and move it"])
 		self.menu.append(["2","Delete a category"])
 		self.menu.append(["3","Insert a new category"])
+		self.menu.append(["4","Increment time of a category"])
+		self.menu.append(["5","Decrement time of a category"])
 		self.move_menu = []
 		self.move_menu.append(["1", "Finish moving"])
 		self.move_menu.append(["UP", "Move up the category and all the subcategories"])
@@ -250,6 +263,7 @@ class Pad(object):
 
 	def say(self, msg):
 		"""write *msg* to the last line available, for notifications"""
+		self.clean_status_line()
 		lastline = self.ymaxscr()
 		self.write(lastline, 1, msg)
 		self.refresh(lastline)
@@ -346,12 +360,26 @@ def loop(stdscr, t):
 				action = -1
 			if action == "3":
 				while not action.isalpha():
-					action = pad.msg_and_wait_getkey("Press key to use as shortcut for the new category, no repeted allowed: ")
+					action = pad.msg_and_wait_getkey("Press key to use as shortcut for the new category, key repeat not allowed: ")
 					if action in t.categories:
 						action = "3"
 				pad.say("Type string for the category. (it won't show until <enter> is pressed)")
 				name = pad.getstr()
 				t.categories[action] = Category(t.categories[""],action,name)
+				action = -1
+			if action == "4":
+				while (action not in t.categories) and (action != "KEY_BACKSPACE"):
+					action = pad.msg_and_wait_getkey("Select category to increment time; DEL to cancel")
+				if action in t.categories:
+					pad.say("How many seconds do you want to add: ")
+					t.categories[action].inc_time(pad.getstr())
+				action = -1
+			if action == "5":
+				while (action not in t.categories) and (action != "KEY_BACKSPACE"):
+					action = pad.msg_and_wait_getkey("Select category to decrement time; DEL to cancel")
+				if action in t.categories:
+					pad.say("How many seconds do you want to remove: ")
+					t.categories[action].dec_time(pad.getstr())
 				action = -1
 
 			pad.clean_status_line()
@@ -370,7 +398,7 @@ def loop(stdscr, t):
 		nexty = pad.getyx()[0] + 2 #Skip 2 lines from the end of the last written text
 		pad.write_menu(nexty, pad.menu)
 		pad.refresh()
-		time.sleep(0.125)
+		time.sleep(0.33)
 	  except (KeyboardInterrupt, SystemExit):
 	  	exit = True
 	  except:
