@@ -9,6 +9,13 @@ import time
 import sys
 import curses
 
+log_file = "_default.rc.log"
+
+def log_this(logfile, category, msg, mytime):
+		timefmt = "%d/%m/%y %H:%M:%S"
+		with open(logfile,"a") as f:
+			f.write("{0}> {2} - \"{1}\"; *{3}* total seconds\n".format(time.strftime(timefmt,time.gmtime()),category, msg, str(mytime)))
+
 class Category(object):
 	"""Each of the projects and tasks, they can be nested"""
 
@@ -30,11 +37,15 @@ class Category(object):
 
 	def play(self):
 		"""Continue logging time to this category"""
+		global log_file
+		log_this(log_file, self.shortcut, "Play", self.time)
 		self.start_time = int(time.time())
 		self.state = "play"
 
 	def pause(self):
 		"""Pause logging time to this category"""
+		global log_file
+		log_this(log_file, self.shortcut, "Pause", self.time)
 		self.state = "pause"
 
 	def toogle(self):
@@ -100,7 +111,7 @@ class Category(object):
 
 class Tracker(object):
 	"""Monitor for the categories and user interface"""
-	version = "v0.7"
+	version = "v0.8"
 
 	def __init__(self):
 		"""Init the monitor with a categories list containing the root category,
@@ -122,8 +133,15 @@ class Tracker(object):
 
 		"""
 		self.config_file = filename
+		global log_file
+		log_file = "_" + filename + ".log"
 		with open(filename) as f:
 			lines = f.readlines()
+		try:
+			with open(log_file) as f:
+				logs = f.read()
+		except:
+			logs = ""
 
 		config = {}
 		for l in lines:
@@ -138,8 +156,16 @@ class Tracker(object):
 				continue
 			config[s[0]] = s[1]
 
+			#initial time if in log
+			cattime = 0
+			lastpos = logs.rfind("\""+s[0]+"\"")
+			if lastpos != -1:
+				timepos = lastpos + 6
+				endtimepos = logs[timepos: timepos + 20].find("*")
+				cattime = int(logs[timepos:timepos+endtimepos])
+
 			#TODO not subcategories loaded yet, all loaded as children of root category
-			self.categories[s[0]] = Category(self.categories[""],s[0],s[1])
+			self.categories[s[0]] = Category(self.categories[""],s[0],s[1],cattime)
 
 	def new_config(self, filename):
 		"""Creates an empty file to write the config of the logger when closing"""
@@ -402,7 +428,12 @@ def loop(stdscr, t):
 	  except (KeyboardInterrupt, SystemExit):
 	  	exit = True
 	  except:
-		pass
+	    pass
+	  finally:
+	    if exit:
+	    	for cat in t.categories:
+				if cat != "":
+					log_this(log_file, t.categories[cat].shortcut, "Clean exit", t.categories[cat].time)
 	return 0
 
 def main():
