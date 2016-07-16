@@ -170,7 +170,6 @@ class Tracker(object):
 			if dashes > len(parents):
 				parentcat = parents[-1]
 			else:
-				print dashes
 				parentcat = parents[dashes]
 
 			#new cat and assign to dict with key shortcut
@@ -188,6 +187,19 @@ class Tracker(object):
 		self.config_file = filename
 		with open(filename, "w") as f:
 			pass
+
+	def build_subcat_str(self,cat,ind):
+		cad = ""
+		subcat = ""
+		for c in cat.children:
+			subcat += self.build_subcat_str(c,ind+1)
+		if ind >= 0:
+			cad += "-"*ind + cat.shortcut + ":" + cat.name + "\n"
+		return cad + subcat
+
+	def save_config(self):
+		with open(self.config_file,"w") as f:
+			f.write(self.build_subcat_str(self.categories[""], -1))
 
 	def update_all(self):
 		"""Update the time for all the categories (they know if they are running or stopped)"""
@@ -447,7 +459,8 @@ def loop(stdscr, t):
 	    pass
 	  finally:
 	    if exit:
-	    	for cat in t.categories:
+			t.save_config()
+			for cat in t.categories:
 				if cat != "":
 					log_this(log_file, t.categories[cat].shortcut, "Clean exit", t.categories[cat].time)
 	return 0
