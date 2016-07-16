@@ -1,2 +1,7 @@
+<<<<<<< HEAD
 *.pyc
 __pycache__
+=======
+_site/
+.jekyll-metadata
+>>>>>>> 883fb6ffeacd03e0346fdf48554dc6e25471d5ce
