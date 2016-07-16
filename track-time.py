@@ -144,6 +144,7 @@ class Tracker(object):
 			logs = ""
 
 		config = {}
+		parents = [self.categories[""]]
 		for l in lines:
 			s = [w.strip("-").strip() for w in l.split(":")]
 
@@ -164,8 +165,23 @@ class Tracker(object):
 				endtimepos = logs[timepos: timepos + 20].find("*")
 				cattime = int(logs[timepos:timepos+endtimepos])
 
-			#TODO not subcategories loaded yet, all loaded as children of root category
-			self.categories[s[0]] = Category(self.categories[""],s[0],s[1],cattime)
+			#subcategories loaded, all loaded as children of root category
+			dashes = l[:l.find(":")].count("-")
+			if dashes > len(parents):
+				parentcat = parents[-1]
+			else:
+				print dashes
+				parentcat = parents[dashes]
+
+			#new cat and assign to dict with key shortcut
+			self.categories[s[0]] = Category(parentcat,s[0],s[1],cattime)
+
+			if dashes > len(parents):
+				parents.append(self.categories[s[0]])
+			elif dashes < len(parents) - 1:
+				parents[dashes+1] = self.categories[s[0]]
+			else:
+				parents.append(self.categories[s[0]])
 
 	def new_config(self, filename):
 		"""Creates an empty file to write the config of the logger when closing"""
